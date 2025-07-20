@@ -468,7 +468,7 @@ const VideoManagement: React.FC<VideoManagementProps> = ({ getAuthHeaders, token
                           setUploadError(null);
                         }}
                         onUploadError={(error) => setUploadError(error)}
-                        maxFileSize={500 * 1024 * 1024} // 500MB
+                        maxFileSize={2 * 1024 * 1024 * 1024} // 2GB
                         acceptedTypes="video/*"
                         chunkSize={2 * 1024 * 1024} // 2MB chunks
                       />

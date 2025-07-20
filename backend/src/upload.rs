@@ -45,7 +45,7 @@ impl Default for UploadConfig {
     fn default() -> Self {
         Self {
             upload_dir: "uploads".to_string(),
-            max_file_size: 500 * 1024 * 1024, // 500MB
+            max_file_size: 2 * 1024 * 1024 * 1024, // 2GB
         }
     }
 }

@@ -32,7 +32,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/portalyus
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       UPLOAD_DIR: uploads
-      MAX_FILE_SIZE: 100000000
+      MAX_FILE_SIZE: 2147483648
       RUST_LOG: info
     ports:
       - "8000:8000"

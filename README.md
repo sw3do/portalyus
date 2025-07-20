@@ -79,7 +79,7 @@ Create a `.env` file in the `backend` directory:
 DATABASE_URL=postgres://username:password@localhost/portalyus
 JWT_SECRET=your-jwt-secret-key
 UPLOAD_DIR=uploads
-MAX_FILE_SIZE=100000000
+MAX_FILE_SIZE=2147483648
 ```
 
 ### Frontend Environment Variables
