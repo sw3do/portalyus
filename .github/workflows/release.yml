@@ -12,20 +12,21 @@ jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
+        generate_release_notes: true
 
   build-backend:
     name: Build Backend
@@ -70,25 +71,15 @@ jobs:
     
     - name: Upload Release Asset (Unix)
       if: matrix.os != 'windows-latest'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: backend/target/release/portalyus-backend-${{ matrix.os }}.tar.gz
-        asset_name: portalyus-backend-${{ matrix.os }}.tar.gz
-        asset_content_type: application/gzip
+        files: backend/target/release/portalyus-backend-${{ matrix.os }}.tar.gz
     
     - name: Upload Release Asset (Windows)
       if: matrix.os == 'windows-latest'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: backend/target/release/portalyus-backend-${{ matrix.os }}.zip
-        asset_name: portalyus-backend-${{ matrix.os }}.zip
-        asset_content_type: application/zip
+        files: backend/target/release/portalyus-backend-${{ matrix.os }}.zip
 
   build-frontend:
     name: Build Frontend
@@ -119,11 +110,6 @@ jobs:
         tar -czf portalyus-frontend.tar.gz dist/
     
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: frontend/portalyus-frontend.tar.gz
-        asset_name: portalyus-frontend.tar.gz
-        asset_content_type: application/gzip
+        files: frontend/portalyus-frontend.tar.gz
