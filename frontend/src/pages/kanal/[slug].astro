@@ -3,32 +3,46 @@ import Layout from '../../layouts/Layout.astro';
 import Navigation from '../../components/Navigation.tsx';
 import VideoCard from '../../components/VideoCard.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
+import type { Channel, Video, ApiResponse } from '../../types/index';
 
-export const prerender = false;
+export const prerender = true;
 
+export async function getStaticPaths() {
+  try {
+    const response = await fetch(getApiUrl('/channels'));
+    const data: ApiResponse<Channel[]> = await response.json();
+    
+    if (data.success) {
+      return data.data.map((channel: Channel) => ({
+        params: { slug: channel.slug },
+        props: { channel }
+      }));
+    }
+  } catch (err) {
+    console.error('Error fetching channels:', err);
+  }
+  
+  return [];
+}
+
+interface Props {
+  channel: Channel;
+}
+
+const { channel }: Props = Astro.props;
 const { slug } = Astro.params;
 
-let channel = null;
-let videos = [];
+let videos: Video[] = [];
 
 try {
-  const [channelRes, videosRes] = await Promise.all([
-    fetch(getApiUrl(`/channels/${slug}`)),
-    fetch(getApiUrl(`/channels/${slug}/videos`))
-  ]);
-  
-  const channelData = await channelRes.json();
-  const videosData = await videosRes.json();
-  
-  if (channelData.success) {
-    channel = channelData.data;
-  }
+  const videosRes = await fetch(getApiUrl(`/channels/${slug}/videos`));
+  const videosData: ApiResponse<Video[]> = await videosRes.json();
   
   if (videosData.success) {
     videos = videosData.data;
   }
 } catch (err) {
-  console.error('Error fetching channel:', err);
+  console.error('Error fetching videos:', err);
 }
 
 if (!channel) {
@@ -113,7 +127,7 @@ const formatDate = (dateString: string) => {
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {videos.map((video: any) => (
+              {videos.map((video: Video) => (
                 <VideoCard video={video} client:load />
               ))}
             </div>

@@ -3,52 +3,48 @@ import Layout from '../../layouts/Layout.astro';
 import Navigation from '../../components/Navigation.tsx';
 import VideoPlayer from '../../components/VideoPlayer.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
+import type { Video, ApiResponse } from '../../types/index';
 
-export const prerender = false;
+export const prerender = true;
 
-interface Video {
-  id: number;
-  title: string;
-  description: string;
-  slug: string;
-  video_file: string;
-  thumbnail?: string;
-  view_count: number;
-  created_at: string;
-  category_slug: string;
-  category_name: string;
-  channel_slug: string;
-  channel_name: string;
-  channel_profile_image?: string;
-  is_featured: boolean;
+export async function getStaticPaths() {
+  try {
+    const response = await fetch(getApiUrl('/videos'));
+    const data: ApiResponse<Video[]> = await response.json();
+    
+    if (data.success) {
+      return data.data.map((video: Video) => ({
+        params: { slug: video.slug },
+        props: { video }
+      }));
+    }
+  } catch (err) {
+    console.error('Error fetching videos:', err);
+  }
+  
+  return [];
 }
 
+interface Props {
+  video: Video;
+}
 
-
+const { video }: Props = Astro.props;
 const { slug } = Astro.params;
 
-let video: Video | null = null;
 let relatedVideos: Video[] = [];
 
 try {
-  const videoRes = await fetch(getApiUrl(`/videos/${slug}`));
-  const videoData = await videoRes.json();
-  
-  if (videoData.success) {
-    video = videoData.data;
+  if (video) {
+    const relatedRes = await fetch(getApiUrl(`/categories/${video.category_slug}/videos`));
+    const relatedData: ApiResponse<Video[]> = await relatedRes.json();
     
-    // Fetch related videos from the same category
-    if (video) {
-      const relatedRes = await fetch(getApiUrl(`/categories/${video.category_slug}/videos`));
-      const relatedData = await relatedRes.json();
-      
-      if (relatedData.success) {
-        relatedVideos = relatedData.data.filter((v: Video) => v.id !== video!.id).slice(0, 8);
-      }
+    if (relatedData.success) {
+      relatedVideos = relatedData.data.filter((v: Video) => v.id !== video.id).slice(0, 8);
     }
   }
 } catch (err) {
-  console.error('Error fetching video:', err);
+  console.error('Error fetching related videos:', err);
 }
 
 if (!video) {

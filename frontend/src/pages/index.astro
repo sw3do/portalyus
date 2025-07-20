@@ -3,10 +3,11 @@ import Layout from "../layouts/Layout.astro";
 import Navigation from "../components/Navigation.tsx";
 import VideoCard from "../components/VideoCard.tsx";
 import { getApiUrl } from "../config/env";
+import type { Video, Category, ApiResponse } from "../types/index";
 
-let featuredVideos = [];
-let recentVideos = [];
-let categories = [];
+let featuredVideos: Video[] = [];
+let recentVideos: Video[] = [];
+let categories: Category[] = [];
 
 try {
   const [featuredRes, recentRes, categoriesRes] = await Promise.all([
@@ -15,9 +16,9 @@ try {
     fetch(getApiUrl("/categories")),
   ]);
 
-  const featuredData = await featuredRes.json();
-  const recentData = await recentRes.json();
-  const categoriesData = await categoriesRes.json();
+  const featuredData: ApiResponse<Video[]> = await featuredRes.json();
+  const recentData: ApiResponse<Video[]> = await recentRes.json();
+  const categoriesData: ApiResponse<Category[]> = await categoriesRes.json();
 
   if (featuredData.success) featuredVideos = featuredData.data;
   if (recentData.success) recentVideos = recentData.data;
@@ -107,7 +108,7 @@ try {
               </p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {featuredVideos.map((video: any) => (
+              {featuredVideos.map((video: Video) => (
                 <VideoCard video={video} client:idle />
               ))}
             </div>
@@ -134,7 +135,7 @@ try {
               </p>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {categories.map((category: any) => (
+              {categories.map((category: Category) => (
                 <a
                   href={`/kategori/${category.slug}`}
                   class="group relative bg-gradient-to-br from-gray-700 to-gray-800 hover:from-blue-600 hover:to-purple-600 rounded-xl p-6 text-center transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border border-gray-600 hover:border-transparent"
@@ -182,7 +183,7 @@ try {
               </p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {recentVideos.map((video: any) => (
+              {recentVideos.map((video: Video) => (
                 <VideoCard video={video} client:idle />
               ))}
             </div>
