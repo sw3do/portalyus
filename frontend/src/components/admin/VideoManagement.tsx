@@ -463,8 +463,11 @@ const VideoManagement: React.FC<VideoManagementProps> = ({ getAuthHeaders, token
                       <ChunkedUpload
                         token={token}
                         uploadType="video"
-                        onUploadComplete={(filename) => {
+                        onUploadComplete={(filename, responseData) => {
                           setUploadedVideoFile(filename);
+                          if (responseData?.disk_id) {
+                            setUploadedDiskId(responseData.disk_id);
+                          }
                           setUploadError(null);
                         }}
                         onUploadError={(error) => setUploadError(error)}

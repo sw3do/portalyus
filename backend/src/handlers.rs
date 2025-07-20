@@ -281,7 +281,11 @@ async fn scan_system_disks() -> Result<Vec<SystemDiskInfo>, Box<dyn std::error::
             }
         }
     } else {
-        let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string());
+        let home_dir = if cfg!(target_os = "windows") {
+            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users".to_string())
+        } else {
+            std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string())
+        };
         let paths_to_check = vec![
             "/",
             "/tmp",
@@ -323,14 +327,14 @@ async fn get_windows_drives() -> Result<Vec<String>, Box<dyn std::error::Error>>
     for line in output_str.lines().skip(1) {
         let trimmed = line.trim();
         if trimmed.len() == 2 && trimmed.ends_with(':') {
-            let drive = format!("{}\\\\", trimmed);
+            let drive = format!("{}\\", trimmed);
             drives.push(drive);
         }
     }
     
     if drives.is_empty() {
         for letter in 'A'..='Z' {
-            let drive = format!("{}:\\\\", letter);
+            let drive = format!("{}:\\", letter);
             if std::path::Path::new(&drive).exists() {
                 drives.push(drive);
             }
@@ -418,8 +422,8 @@ pub async fn serve_video_handler(
 }
 
 async fn get_video_file_path(pool: &PgPool, filename: &str) -> Result<Option<PathBuf>, sqlx::Error> {
-    let result = sqlx::query_as::<_, (String,)>(
-        "SELECT CONCAT(ds.path, '/', v.video_file) as full_path 
+    let result = sqlx::query_as::<_, (String, String)>(
+        "SELECT ds.path, v.video_file 
          FROM videos v 
          JOIN disk_storage ds ON v.disk_id = ds.id 
          WHERE v.video_file = $1"
@@ -428,8 +432,9 @@ async fn get_video_file_path(pool: &PgPool, filename: &str) -> Result<Option<Pat
     .fetch_optional(pool)
     .await?;
 
-    if let Some((path,)) = result {
-        Ok(Some(PathBuf::from(path)))
+    if let Some((disk_path, video_file)) = result {
+        let full_path = PathBuf::from(&disk_path).join(&video_file);
+        Ok(Some(full_path))
     } else {
         let fallback_path = PathBuf::from("uploads/videos").join(filename);
         if fallback_path.exists() {

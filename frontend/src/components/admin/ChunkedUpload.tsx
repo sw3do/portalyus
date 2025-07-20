@@ -163,7 +163,7 @@ const ChunkedUpload: React.FC<ChunkedUploadProps> = ({
           } : null);
           // Backend returns file_path like "channels/uuid.jpg", we need just the filename
           const filename = result.data.file_path ? result.data.file_path.split('/').pop() : '';
-          onUploadComplete(filename);
+          onUploadComplete(filename, result.data);
           return;
         }
       }
