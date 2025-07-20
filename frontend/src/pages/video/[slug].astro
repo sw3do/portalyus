@@ -5,32 +5,24 @@ import VideoPlayer from '../../components/VideoPlayer.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
 import type { Video, ApiResponse } from '../../types/index';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  try {
-    const response = await fetch(getApiUrl('/videos'));
-    const data: ApiResponse<Video[]> = await response.json();
-    
-    if (data.success) {
-      return data.data.map((video: Video) => ({
-        params: { slug: video.slug },
-        props: { video }
-      }));
-    }
-  } catch (err) {
-    console.error('Error fetching videos:', err);
-  }
-  
-  return [];
-}
-
-interface Props {
-  video: Video;
-}
-
-const { video }: Props = Astro.props;
 const { slug } = Astro.params;
+
+let video: Video | null = null;
+
+try {
+  const response = await fetch(getApiUrl(`/videos/${slug}`));
+  const data: ApiResponse<Video> = await response.json();
+  
+  if (data.success) {
+    video = data.data;
+  }
+} catch (err) {
+  console.error('Error fetching video:', err);
+}
+
+if (!video) {
+  return Astro.redirect('/404');
+}
 
 let relatedVideos: Video[] = [];
 

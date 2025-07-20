@@ -5,32 +5,24 @@ import VideoCard from '../../components/VideoCard.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
 import type { Channel, Video, ApiResponse } from '../../types/index';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  try {
-    const response = await fetch(getApiUrl('/channels'));
-    const data: ApiResponse<Channel[]> = await response.json();
-    
-    if (data.success) {
-      return data.data.map((channel: Channel) => ({
-        params: { slug: channel.slug },
-        props: { channel }
-      }));
-    }
-  } catch (err) {
-    console.error('Error fetching channels:', err);
-  }
-  
-  return [];
-}
-
-interface Props {
-  channel: Channel;
-}
-
-const { channel }: Props = Astro.props;
 const { slug } = Astro.params;
+
+let channel: Channel | null = null;
+
+try {
+  const response = await fetch(getApiUrl(`/channels/${slug}`));
+  const data: ApiResponse<Channel> = await response.json();
+  
+  if (data.success) {
+    channel = data.data;
+  }
+} catch (err) {
+  console.error('Error fetching channel:', err);
+}
+
+if (!channel) {
+  return Astro.redirect('/404');
+}
 
 let videos: Video[] = [];
 
