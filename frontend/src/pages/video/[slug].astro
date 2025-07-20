@@ -27,7 +27,6 @@ const { slug } = Astro.params;
 
 let video: Video | null = null;
 let relatedVideos: Video[] = [];
-let error: string | null = null;
 
 try {
   const videoRes = await fetch(getApiUrl(`/videos/${slug}`));
@@ -45,11 +44,8 @@ try {
         relatedVideos = relatedData.data.filter((v: Video) => v.id !== video!.id).slice(0, 8);
       }
     }
-  } else {
-    error = videoData.message || 'Video bulunamadı';
   }
 } catch (err) {
-  error = 'Video yüklenirken bir hata oluştu';
   console.error('Error fetching video:', err);
 }
 

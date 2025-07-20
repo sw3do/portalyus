@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Bars3Icon,
-  ArrowRightOnRectangleIcon
+  ArrowRightStartOnRectangleIcon
 } from '@heroicons/react/24/outline';
 
 interface HeaderProps {
@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onLogout }) => {
             onClick={onLogout}
             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+            <ArrowRightStartOnRectangleIcon className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Çıkış Yap</span>
           </button>
         </div>

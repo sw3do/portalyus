@@ -266,7 +266,7 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ getAuthHeaders, t
                   <ChunkedUpload
                     token={token}
                     uploadType="channel-image"
-                    onUploadComplete={(filename, response) => {
+                    onUploadComplete={(filename) => {
                       setUploadedImage(filename);
                       setUploadError(null);
                     }}

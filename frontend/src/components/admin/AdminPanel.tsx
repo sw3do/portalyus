@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../../config/env';
 import Dashboard from './Dashboard';
 import VideoManagement from './VideoManagement';
 import ChannelManagement from './ChannelManagement';

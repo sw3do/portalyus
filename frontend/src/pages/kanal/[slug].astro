@@ -27,7 +27,6 @@ const { slug } = Astro.params;
 
 let channel = null;
 let videos = [];
-let error = null;
 
 try {
   const [channelRes, videosRes] = await Promise.all([
@@ -40,15 +39,12 @@ try {
   
   if (channelData.success) {
     channel = channelData.data;
-  } else {
-    error = channelData.message || 'Kanal bulunamadı';
   }
   
   if (videosData.success) {
     videos = videosData.data;
   }
 } catch (err) {
-  error = 'Kanal yüklenirken bir hata oluştu';
   console.error('Error fetching channel:', err);
 }
 

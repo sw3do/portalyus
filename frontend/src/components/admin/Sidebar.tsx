@@ -5,7 +5,7 @@ import {
   TvIcon, 
   TagIcon, 
   CircleStackIcon,
-  ArrowRightOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={onLogout}
               className="w-full flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors"
             >
-              <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+              <ArrowRightStartOnRectangleIcon className="h-5 w-5 mr-3" />
               Çıkış Yap
             </button>
           </div>

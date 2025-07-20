@@ -41,7 +41,7 @@ const ChunkedUpload: React.FC<ChunkedUploadProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateUploadId = () => {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    return Date.now().toString() + Math.random().toString(36).substring(2, 11);
   };
 
   const handleFileSelect = (selectedFile: File) => {
@@ -163,7 +163,7 @@ const ChunkedUpload: React.FC<ChunkedUploadProps> = ({
           } : null);
           // Backend returns file_path like "channels/uuid.jpg", we need just the filename
           const filename = result.data.file_path ? result.data.file_path.split('/').pop() : '';
-          onUploadComplete(filename, result.data);
+          onUploadComplete(filename);
           return;
         }
       }

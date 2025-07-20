@@ -27,7 +27,6 @@ const { slug } = Astro.params;
 
 let category = null;
 let videos = [];
-let error = null;
 
 try {
   const [categoryRes, videosRes] = await Promise.all([
@@ -40,15 +39,12 @@ try {
   
   if (categoryData.success) {
     category = categoryData.data;
-  } else {
-    error = categoryData.message || 'Kategori bulunamadı';
   }
   
   if (videosData.success) {
     videos = videosData.data;
   }
 } catch (err) {
-  error = 'Kategori yüklenirken bir hata oluştu';
   console.error('Error fetching category:', err);
 }
 

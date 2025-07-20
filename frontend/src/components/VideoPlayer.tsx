@@ -92,7 +92,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isVolumeDragging, setIsVolumeDragging] = useState(false);
+
   const [showThumbnail, setShowThumbnail] = useState(false);
   const [thumbnailTime, setThumbnailTime] = useState(0);
   const [thumbnailPosition, setThumbnailPosition] = useState(0);
@@ -243,7 +243,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-    setIsVolumeDragging(false);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -332,7 +331,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     toggleFullscreen();
   }, [toggleFullscreen]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  const handleTouchStart = useCallback(() => {
     const currentTime = Date.now();
     const tapLength = currentTime - lastTapTime;
     
