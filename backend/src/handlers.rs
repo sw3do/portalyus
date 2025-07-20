@@ -265,26 +265,43 @@ pub async fn scan_system_disks_handler() -> Result<Json<ApiResponse<Vec<SystemDi
 async fn scan_system_disks() -> Result<Vec<SystemDiskInfo>, Box<dyn std::error::Error>> {
     let mut disks = Vec::new();
     
-    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string());
-    let paths_to_check = vec![
-        "/",
-        "/tmp",
-        &home_dir,
-        "/Volumes",
-    ];
-    
-    for path in paths_to_check {
-        if let Ok(metadata) = fs::metadata(path).await {
-            if metadata.is_dir() {
-                if let Ok(space_info) = get_disk_space(path).await {
-                    disks.push(SystemDiskInfo {
-                        name: path.split('/').last().unwrap_or(path).to_string(),
-                        path: path.to_string(),
-                        total_space: space_info.total,
-                        available_space: space_info.available,
-                        used_space: space_info.total - space_info.available,
-                        mount_point: path.to_string(),
-                    });
+    if cfg!(target_os = "windows") {
+        let drives = get_windows_drives().await?;
+        for drive in drives {
+            if let Ok(space_info) = get_disk_space(&drive).await {
+                let drive_name = drive.trim_end_matches('\\').to_string();
+                disks.push(SystemDiskInfo {
+                    name: drive_name.clone(),
+                    path: drive.clone(),
+                    total_space: space_info.total,
+                    available_space: space_info.available,
+                    used_space: space_info.total - space_info.available,
+                    mount_point: drive,
+                });
+            }
+        }
+    } else {
+        let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string());
+        let paths_to_check = vec![
+            "/",
+            "/tmp",
+            &home_dir,
+            "/Volumes",
+        ];
+        
+        for path in paths_to_check {
+            if let Ok(metadata) = fs::metadata(path).await {
+                if metadata.is_dir() {
+                    if let Ok(space_info) = get_disk_space(path).await {
+                        disks.push(SystemDiskInfo {
+                            name: path.split('/').last().unwrap_or(path).to_string(),
+                            path: path.to_string(),
+                            total_space: space_info.total,
+                            available_space: space_info.available,
+                            used_space: space_info.total - space_info.available,
+                            mount_point: path.to_string(),
+                        });
+                    }
                 }
             }
         }
@@ -293,31 +310,85 @@ async fn scan_system_disks() -> Result<Vec<SystemDiskInfo>, Box<dyn std::error::
     Ok(disks)
 }
 
-async fn get_disk_space(path: &str) -> Result<DiskSpaceInfo, Box<dyn std::error::Error>> {
+async fn get_windows_drives() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     use std::process::Command;
     
-    let output = Command::new("df")
-        .arg("-k")
-        .arg(path)
+    let output = Command::new("wmic")
+        .args(["logicaldisk", "get", "caption"])
         .output()?;
     
     let output_str = String::from_utf8(output.stdout)?;
-    let lines: Vec<&str> = output_str.lines().collect();
+    let mut drives = Vec::new();
     
-    if lines.len() >= 2 {
-        let parts: Vec<&str> = lines[1].split_whitespace().collect();
-        if parts.len() >= 4 {
-            let total = parts[1].parse::<u64>()? * 1024;
-            let available = parts[3].parse::<u64>()? * 1024;
-            
-            return Ok(DiskSpaceInfo {
-                total,
-                available,
-            });
+    for line in output_str.lines().skip(1) {
+        let trimmed = line.trim();
+        if trimmed.len() == 2 && trimmed.ends_with(':') {
+            let drive = format!("{}\\\\", trimmed);
+            drives.push(drive);
         }
     }
     
-    Err("Could not parse disk space information".into())
+    if drives.is_empty() {
+        for letter in 'A'..='Z' {
+            let drive = format!("{}:\\\\", letter);
+            if std::path::Path::new(&drive).exists() {
+                drives.push(drive);
+            }
+        }
+    }
+    
+    Ok(drives)
+}
+
+async fn get_disk_space(path: &str) -> Result<DiskSpaceInfo, Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    if cfg!(target_os = "windows") {
+        let drive_letter = path.chars().next().unwrap_or('C');
+        let output = Command::new("wmic")
+            .args(["logicaldisk", "where", &format!("caption='{}:'", drive_letter), "get", "size,freespace"])
+            .output()?;
+        
+        let output_str = String::from_utf8(output.stdout)?;
+        let lines: Vec<&str> = output_str.lines().collect();
+        
+        for line in lines {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                if let (Ok(available), Ok(total)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>()) {
+                    return Ok(DiskSpaceInfo {
+                        total,
+                        available,
+                    });
+                }
+            }
+        }
+        
+        Err("Could not parse Windows disk space information".into())
+    } else {
+        let output = Command::new("df")
+            .arg("-k")
+            .arg(path)
+            .output()?;
+        
+        let output_str = String::from_utf8(output.stdout)?;
+        let lines: Vec<&str> = output_str.lines().collect();
+        
+        if lines.len() >= 2 {
+            let parts: Vec<&str> = lines[1].split_whitespace().collect();
+            if parts.len() >= 4 {
+                let total = parts[1].parse::<u64>()? * 1024;
+                let available = parts[3].parse::<u64>()? * 1024;
+                
+                return Ok(DiskSpaceInfo {
+                    total,
+                    available,
+                });
+            }
+        }
+        
+        Err("Could not parse Unix disk space information".into())
+    }
 }
 
 pub async fn serve_video_handler(
