@@ -4,24 +4,7 @@ import Navigation from '../../components/Navigation.tsx';
 import VideoCard from '../../components/VideoCard.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  try {
-    const response = await fetch(getApiUrl('/channels'));
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.data.map((channel: any) => ({
-        params: { slug: channel.slug }
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching channels for static paths:', error);
-  }
-  
-  return [];
-}
+export const prerender = false;
 
 const { slug } = Astro.params;
 

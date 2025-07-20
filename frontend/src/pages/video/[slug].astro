@@ -4,6 +4,8 @@ import Navigation from '../../components/Navigation.tsx';
 import VideoPlayer from '../../components/VideoPlayer.tsx';
 import { getApiUrl, getUploadsUrl } from '../../config/env';
 
+export const prerender = false;
+
 interface Video {
   id: number;
   title: string;
