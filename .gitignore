@@ -122,3 +122,5 @@ rust-analyzer/
 # System files
 *.tmp
 *.temp
+
+.vercel/
