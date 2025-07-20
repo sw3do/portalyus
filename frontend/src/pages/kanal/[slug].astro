@@ -1,0 +1,174 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navigation from '../../components/Navigation.tsx';
+import VideoCard from '../../components/VideoCard.tsx';
+import { getApiUrl, getUploadsUrl } from '../../config/env';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  try {
+    const response = await fetch(getApiUrl('/channels'));
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data.map((channel: any) => ({
+        params: { slug: channel.slug }
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching channels for static paths:', error);
+  }
+  
+  return [];
+}
+
+const { slug } = Astro.params;
+
+let channel = null;
+let videos = [];
+let error = null;
+
+try {
+  const [channelRes, videosRes] = await Promise.all([
+    fetch(getApiUrl(`/channels/${slug}`)),
+    fetch(getApiUrl(`/channels/${slug}/videos`))
+  ]);
+  
+  const channelData = await channelRes.json();
+  const videosData = await videosRes.json();
+  
+  if (channelData.success) {
+    channel = channelData.data;
+  } else {
+    error = channelData.message || 'Kanal bulunamadı';
+  }
+  
+  if (videosData.success) {
+    videos = videosData.data;
+  }
+} catch (err) {
+  error = 'Kanal yüklenirken bir hata oluştu';
+  console.error('Error fetching channel:', err);
+}
+
+if (!channel) {
+  return Astro.redirect('/404');
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('tr-TR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+---
+
+<Layout title={`${channel.name} - Portalyus`} description={`${channel.name} kanalının tüm videolarını izleyin`}>
+  <Navigation client:load />
+  
+  <main class="min-h-screen bg-gradient-to-b from-gray-900 to-black">
+    <!-- Channel Header -->
+    <section class="bg-gradient-to-r from-gray-800 to-gray-700 py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 shadow-2xl border border-gray-700">
+          <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+            <div class="flex-shrink-0">
+              {channel.image ? (
+                <img
+                      src={getUploadsUrl(`/channels/${channel.image}`)}
+                      alt={channel.name}
+                      class="w-40 h-40 rounded-full ring-8 ring-gray-600 shadow-2xl"
+                    />
+              ) : (
+                <div class="w-40 h-40 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full ring-8 ring-gray-600 shadow-2xl flex items-center justify-center">
+                  <span class="text-5xl text-white font-bold">{channel.name.charAt(0)}</span>
+                </div>
+              )}
+            </div>
+            
+            <div class="flex-1 text-center md:text-left">
+              <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-200 mb-4 leading-tight">
+                {channel.name}
+              </h1>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-6 text-gray-300 text-lg">
+                <div class="flex items-center justify-center md:justify-start space-x-2 mb-2 sm:mb-0">
+                  <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                  <span class="font-semibold">{videos.length}</span>
+                  <span>video</span>
+                </div>
+                <span class="hidden sm:inline text-gray-600">•</span>
+                <div class="flex items-center justify-center md:justify-start space-x-2">
+                  <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <span>Katılma tarihi:</span>
+                  <span class="font-semibold">{formatDate(channel.created_at)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Videos Section -->
+    <section class="py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {videos.length > 0 ? (
+          <>
+            <div class="flex items-center justify-between mb-8">
+              <h2 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 flex items-center">
+                <svg class="w-8 h-8 mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                Videolar ({videos.length})
+              </h2>
+              <div class="text-gray-400 text-sm">
+                En yeni videolar
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {videos.map((video: any) => (
+                <VideoCard video={video} client:load />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div class="text-center py-16">
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-12 shadow-2xl border border-gray-700 max-w-md mx-auto">
+              <div class="flex flex-col items-center space-y-4">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full flex items-center justify-center">
+                  <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">
+                  Henüz video yok
+                </h3>
+                <p class="text-gray-400">
+                  Bu kanal henüz video yayınlamamış.
+                </p>
+                <p class="text-gray-500 text-sm">Yakında yeni videolar eklenecek!</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  </main>
+  
+  <!-- Footer -->
+  <footer class="bg-gray-800 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-gray-400">
+        © 2024 Portalyus - Taklaking Video Platformu. Tüm hakları saklıdır.
+      </p>
+    </div>
+  </footer>
+</Layout>
