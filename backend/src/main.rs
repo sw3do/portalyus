@@ -5,6 +5,7 @@ mod models;
 mod upload;
 
 use axum::{
+    extract::DefaultBodyLimit,
     middleware,
     routing::{delete, get, post, put},
     Router,
@@ -89,6 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/admin/upload/channel-image/chunk", post(upload_channel_image_chunk))
         .route("/api/admin/upload/status", get(get_upload_status))
         .route("/api/admin/upload/cancel", delete(cancel_upload))
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(middleware::from_fn_with_state(
             auth_config.clone(),
             auth_middleware,
