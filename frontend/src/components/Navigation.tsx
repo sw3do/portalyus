@@ -129,7 +129,7 @@ const Navigation: React.FC = memo(() => {
                       >
                         {channel.image ? (
                           <img
-                            src={getUploadsUrl(`/${channel.image}`)}
+                            src={getUploadsUrl(`/channels/${channel.image}`)}
                             alt={channel.name}
                             className="w-6 h-6 rounded-full object-cover mr-3 ring-2 ring-gray-600 group-hover/item:ring-blue-400 transition-all duration-200"
                             loading="lazy"
@@ -204,7 +204,7 @@ const Navigation: React.FC = memo(() => {
                     >
                       {channel.image ? (
                         <img
-                          src={getUploadsUrl(`/${channel.image}`)}
+                          src={getUploadsUrl(`/channels/${channel.image}`)}
                           alt={channel.name}
                           className="w-6 h-6 rounded-full object-cover mr-3 ring-1 ring-gray-600"
                           loading="lazy"
