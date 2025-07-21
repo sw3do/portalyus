@@ -364,13 +364,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (state.isPlaying) {
-        setState(prev => ({ ...prev, showControls: false }));
-      }
-    }, 3000);
-  }, [state.isPlaying]);
+  }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!videoRef.current) return;
@@ -500,12 +494,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [handleLoadStart, handleTimeUpdate, handleLoadedMetadata, handleLoadedData, handlePlay, handlePause, handleEnded, handleCanPlay, handleWaiting, handleError, handleProgress]);
 
   useEffect(() => {
-    if (state.isPlaying) {
-      showControlsTemporarily();
-    } else {
-      setState(prev => ({ ...prev, showControls: true }));
-    }
-  }, [state.isPlaying, showControlsTemporarily]);
+    setState(prev => ({ ...prev, showControls: true }));
+  }, [state.isPlaying]);
 
   const progressPercentage = useMemo(() => 
     state.duration ? (state.currentTime / state.duration) * 100 : 0, 
