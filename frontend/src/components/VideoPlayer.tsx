@@ -125,8 +125,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [lastTapTime, setLastTapTime] = useState(0);
 
 
-  // Throttle function for performance
-
 
   const throttle = useCallback((func: Function, limit: number) => {
     let inThrottle: boolean;
@@ -259,16 +257,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [handleProgressClick]);
 
   const handleMouseMove = useCallback(throttle((e: MouseEvent) => {
-    if (!isDragging || !progressRef.current || !videoRef.current) return;
+    if (isDragging && progressRef.current && videoRef.current) {
+      const rect = progressRef.current.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+      const newTime = percentage * state.duration;
 
-    const rect = progressRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    const newTime = percentage * state.duration;
-
-    videoRef.current.currentTime = newTime;
-    setState(prev => ({ ...prev, currentTime: newTime }));
-  }, 16), [isDragging, state.duration, throttle]);
+      videoRef.current.currentTime = newTime;
+      setState(prev => ({ ...prev, currentTime: newTime }));
+    }
+    
+    if (state.isFullscreen && !isMobile) {
+      setState(prev => ({ ...prev, showControls: true }));
+      
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      
+      if (state.isPlaying) {
+        controlsTimeoutRef.current = setTimeout(() => {
+          setState(prev => ({ ...prev, showControls: false }));
+        }, 3000);
+      }
+    }
+  }, 16), [isDragging, state.duration, state.isFullscreen, state.isPlaying, isMobile, throttle]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -487,6 +499,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const isFullscreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement || 
                              doc.mozFullScreenElement || doc.msFullscreenElement);
       setState(prev => ({ ...prev, isFullscreen }));
+      
+      if (isFullscreen) {
+        showControlsTemporarily();
+      }
     };
 
     const handleVisibilityChange = () => {
