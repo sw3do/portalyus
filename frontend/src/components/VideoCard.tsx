@@ -55,8 +55,8 @@ const VideoCard: React.FC<VideoCardProps> = memo(({ video, size = 'medium' }) =>
 
   const thumbnailUrl = useMemo(() => {
     if (!video.thumbnail) return null;
-    const path = video.thumbnail.startsWith('thumbnails/') ? video.thumbnail.replace('thumbnails/', '') : video.thumbnail;
-    return getUploadsUrl(`/thumbnails/${path}`);
+    const path = video.thumbnail.startsWith('thumbnails/') ? video.thumbnail : `thumbnails/${video.thumbnail}`;
+    return getUploadsUrl(`/${path}`);
   }, [video.thumbnail]);
 
   const channelImageUrl = useMemo(() => {

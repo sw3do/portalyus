@@ -184,7 +184,7 @@ class AdminPanel {
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <img class="h-10 w-16 object-cover rounded" src="${this.uploadsUrl}/thumbnails/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail.replace('thumbnails/', '') : video.thumbnail}" alt="${video.title}">
+                                        <img class="h-10 w-16 object-cover rounded" src="${this.uploadsUrl}/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail : `thumbnails/${video.thumbnail}`}" alt="${video.title}">
                                         <div class="ml-4">
                                             <div class="text-sm font-medium text-gray-900">${video.title}</div>
                                             <div class="text-sm text-gray-500">${video.duration || 'N/A'}</div>
@@ -704,8 +704,8 @@ class AdminPanel {
                     
                     const thumbnailUploadResult = await thumbnailUploadResponse.json();
                     if (thumbnailUploadResult.success) {
-                        // Backend returns file_path like "thumbnails/uuid.jpg", we need just the filename
-                        thumbnailFileName = thumbnailUploadResult.data.file_path ? thumbnailUploadResult.data.file_path.split('/').pop() : '';
+                        // Backend returns file_path like "thumbnails/uuid.jpg", keep the full path for thumbnails
+                        thumbnailFileName = thumbnailUploadResult.data.file_path || '';
                     }
                 }
 

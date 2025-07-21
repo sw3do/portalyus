@@ -79,7 +79,7 @@ let viewCounted = false;
               <VideoPlayer
                 client:only
                 src={getUploadsUrl(`/videos/${video.video_file}`)}
-                poster={video.thumbnail ? getUploadsUrl(`/thumbnails/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail.replace('thumbnails/', '') : video.thumbnail}`) : undefined}
+                poster={video.thumbnail ? getUploadsUrl(`/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail : `thumbnails/${video.thumbnail}`}`) : undefined}
                 title={video.title}
                 className="w-full h-full rounded-t-2xl"
                 onPlay={() => {
@@ -191,7 +191,7 @@ let viewCounted = false;
                       <div class="w-32 h-18 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg overflow-hidden relative">
                         {relatedVideo.thumbnail ? (
                           <img
-                            src={getUploadsUrl(`/thumbnails/${relatedVideo.thumbnail.startsWith('thumbnails/') ? relatedVideo.thumbnail.replace('thumbnails/', '') : relatedVideo.thumbnail}`)}
+                            src={getUploadsUrl(`/${relatedVideo.thumbnail.startsWith('thumbnails/') ? relatedVideo.thumbnail : `thumbnails/${relatedVideo.thumbnail}`}`)}
                             alt={relatedVideo.title}
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

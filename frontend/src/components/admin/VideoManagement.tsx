@@ -290,7 +290,7 @@ const VideoManagement: React.FC<VideoManagementProps> = ({ getAuthHeaders, token
                           {video.thumbnail ? (
                             <img
                               className="h-16 w-24 object-cover rounded"
-                              src={getUploadsUrl(`/thumbnails/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail.replace('thumbnails/', '') : video.thumbnail}`)}
+                              src={getUploadsUrl(`/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail : `thumbnails/${video.thumbnail}`}`)}
                               alt={video.title}
                             />
                           ) : (
