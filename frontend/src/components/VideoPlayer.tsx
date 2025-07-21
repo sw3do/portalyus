@@ -516,8 +516,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <div
       ref={containerRef}
       className={`relative bg-gradient-to-br from-gray-950 via-black to-gray-900 group ${className} focus:outline-none rounded-xl overflow-hidden shadow-2xl border border-white/5 ${isMobile ? 'touch-manipulation' : ''}`}
-      onMouseMove={!isMobile ? showControlsTemporarily : undefined}
-      onTouchStart={isMobile ? showControlsTemporarily : undefined}
       onMouseLeave={() => {
         if (!isMobile) {
           setShowVolumeSlider(false);
