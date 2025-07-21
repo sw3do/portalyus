@@ -102,7 +102,7 @@ let viewCounted = false;
                 <a href={`/kanal/${video.channel_slug}`} class="group flex items-center space-x-4 hover:text-blue-400 transition-all duration-300">
                   {video.channel_profile_image ? (
                     <img
-                      src={getUploadsUrl(`/channels/${video.channel_profile_image}`)}
+                      src={getUploadsUrl(`/${video.channel_profile_image}`)}
                       alt={video.channel_name}
                       class="w-14 h-14 rounded-full ring-4 ring-gray-600 group-hover:ring-blue-400 transition-all duration-300"
                     />

@@ -176,7 +176,7 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ getAuthHeaders, t
               <div className="aspect-video bg-gray-100 flex items-center justify-center">
                 {channel.image ? (
                   <img
-                    src={getUploadsUrl(`/channels/${channel.image}`)}
+                    src={getUploadsUrl(`/${channel.image}`)}
                     alt={channel.name}
                     className="w-full h-full object-cover"
                   />
