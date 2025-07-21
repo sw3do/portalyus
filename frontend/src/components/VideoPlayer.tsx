@@ -400,10 +400,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       clearTimeout(controlsTimeoutRef.current);
     }
 
-    if (state.isPlaying && !isMobile) {
+    if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setState(prev => ({ ...prev, showControls: false }));
-      }, 3000);
+      }, isMobile ? 4000 : 3000);
     }
   }, [state.isPlaying, isMobile]);
 
@@ -617,9 +617,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <div
       ref={containerRef}
       className={`relative bg-gradient-to-br from-gray-950 via-black to-gray-900 group ${className} focus:outline-none rounded-xl overflow-hidden shadow-2xl border border-white/5 ${isMobile ? 'touch-manipulation' : ''}`}
-      onMouseMove={(e) => {
-        handleMouseMove(e);
+      onMouseMove={() => {
         if (!isMobile) {
+          showControlsTemporarily();
+        }
+      }}
+      onTouchStart={() => {
+        if (isMobile) {
           showControlsTemporarily();
         }
       }}
