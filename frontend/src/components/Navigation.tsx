@@ -80,6 +80,10 @@ const Navigation: React.FC = memo(() => {
               Tüm Videolar
             </a>
             
+            <a href="/iletisim" className="text-gray-300 hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-red-600/20 hover:to-orange-600/20 backdrop-blur-sm">
+              İletişim
+            </a>
+            
             {/* Categories Dropdown */}
             <div className="relative group">
               <button className="flex items-center text-gray-300 hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-red-600/20 hover:to-orange-600/20 backdrop-blur-sm">
@@ -179,6 +183,10 @@ const Navigation: React.FC = memo(() => {
             
             <a href="/videolar" className="text-gray-300 hover:text-white block px-4 py-3 rounded-xl text-base font-medium hover:bg-gradient-to-r hover:from-red-600/20 hover:to-orange-600/20 transition-all duration-300">
               Tüm Videolar
+            </a>
+            
+            <a href="/iletisim" className="text-gray-300 hover:text-white block px-4 py-3 rounded-xl text-base font-medium hover:bg-gradient-to-r hover:from-red-600/20 hover:to-orange-600/20 transition-all duration-300">
+              İletişim
             </a>
             
             {!isLoading && (
