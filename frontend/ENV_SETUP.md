@@ -50,7 +50,7 @@ import { getApiUrl, getUploadsUrl } from '../config/env';
 fetch(getApiUrl('/categories'))
 
 // Use for image sources
-<img src={getUploadsUrl(video.thumbnail)} />
+<img src={getUploadsUrl(`/thumbnails/${video.thumbnail.startsWith('thumbnails/') ? video.thumbnail.replace('thumbnails/', '') : video.thumbnail}`)} />
 ```
 
 ### In public JavaScript files
