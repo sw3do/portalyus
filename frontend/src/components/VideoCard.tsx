@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { PlayIcon, EyeIcon } from '@heroicons/react/24/solid';
+import { PlayIcon } from '@heroicons/react/24/solid';
 import { getUploadsUrl } from '../config/env';
 
 interface VideoCardProps {
@@ -29,16 +29,7 @@ const VideoCard: React.FC<VideoCardProps> = memo(({ video, size = 'medium' }) =>
     return `${minutes}:${Math.floor(remainingSeconds).toString().padStart(2, '0')}`;
   }, [video.duration]);
 
-  const formattedViewCount = useMemo(() => {
-    const count = video.view_count;
-    if (!count && count !== 0) return '0';
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
-    }
-    return count.toString();
-  }, [video.view_count]);
+
 
   const formattedDate = useMemo(() => {
     const date = new Date(video.created_at);
@@ -63,41 +54,40 @@ const VideoCard: React.FC<VideoCardProps> = memo(({ video, size = 'medium' }) =>
     return video.channel_profile_image ? getUploadsUrl(`/channels/${video.channel_profile_image}`) : null;
   }, [video.channel_profile_image]);
 
-  const sizeClasses = {
-    small: 'w-full max-w-sm',
-    medium: 'w-full max-w-md',
-    large: 'w-full max-w-lg'
-  };
+  const cardClasses = useMemo(() => {
+    const baseClasses = "group relative bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-lg sm:rounded-xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20";
+    
+    switch (size) {
+      case 'small':
+        return `${baseClasses} w-full max-w-xs sm:max-w-sm`;
+      case 'large':
+        return `${baseClasses} w-full max-w-sm sm:max-w-md lg:max-w-lg`;
+      default:
+        return `${baseClasses} w-full max-w-xs sm:max-w-sm`;
+    }
+  }, [size]);
 
   return (
-    <div className={`${sizeClasses[size]} group bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 border border-gray-700 hover:border-blue-500/50`}>
-      <div className="relative overflow-hidden">
+    <div className={`${cardClasses} cursor-pointer`}>
+      <div className="relative overflow-hidden rounded-lg sm:rounded-xl mb-2 sm:mb-3">
         <a href={`/video/${video.slug}`}>
-          <div className="aspect-video bg-gradient-to-br from-gray-700 to-gray-800 relative overflow-hidden rounded-t-xl">
+          <div className="aspect-video bg-gray-900 relative overflow-hidden rounded-lg sm:rounded-xl">
             {thumbnailUrl ? (
               <img
                 src={thumbnailUrl}
                 alt={video.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600/20 to-purple-600/20">
-                <PlayIcon className="w-16 h-16 text-gray-400" />
+              <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                <PlayIcon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-500" />
               </div>
             )}
             
-            {/* Play overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 transform scale-75 group-hover:scale-100 transition-transform duration-300">
-                <PlayIcon className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            
-            {/* Duration */}
             {formattedDuration && (
-              <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-medium">
+              <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded font-medium">
                 {formattedDuration}
               </div>
             )}
@@ -105,57 +95,50 @@ const VideoCard: React.FC<VideoCardProps> = memo(({ video, size = 'medium' }) =>
         </a>
       </div>
       
-      <div className="p-5">
-        <a href={`/video/${video.slug}`} className="block">
-          <h3 className="text-white font-semibold text-lg mb-3 line-clamp-2 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 transition-all duration-300 leading-tight">
-            {video.title}
-          </h3>
-        </a>
-        
-        <div className="flex items-center space-x-3 mb-3">
-          <a href={`/kanal/${video.channel_slug}`} className="flex items-center space-x-2 hover:text-blue-400 transition-colors group/channel">
+      <div className="flex space-x-3">
+        <div className="flex-shrink-0">
+          <a href={`/kanal/${video.channel_slug}`} className="block">
             {channelImageUrl ? (
               <img
                 src={channelImageUrl}
                 alt={video.channel_name}
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-600 group-hover/channel:ring-blue-400 transition-all duration-300"
+                className="w-9 h-9 rounded-full object-cover"
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center ring-2 ring-gray-600 group-hover/channel:ring-blue-400 transition-all duration-300">
+              <div className="w-9 h-9 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center">
                 <span className="text-sm text-white font-bold">{video.channel_name.charAt(0)}</span>
               </div>
             )}
-            <span className="text-gray-300 text-sm font-medium group-hover/channel:text-blue-400 transition-colors">{video.channel_name}</span>
           </a>
         </div>
         
-        <div className="flex items-center justify-between text-gray-400 text-sm mb-3">
-          <div className="flex items-center space-x-4">
+        <div className="flex-1 min-w-0">
+          <a href={`/video/${video.slug}`} className="block">
+            <h3 className="text-white font-medium text-sm sm:text-base leading-tight line-clamp-2 mb-1 group-hover:text-gray-200 transition-colors">
+              {video.title}
+            </h3>
+          </a>
+          
+          <div className="text-gray-400 text-xs sm:text-sm space-y-1">
+            <a href={`/kanal/${video.channel_slug}`} className="block hover:text-gray-300 transition-colors truncate">
+              {video.channel_name}
+            </a>
             <div className="flex items-center space-x-1">
-              <EyeIcon className="w-4 h-4 text-blue-400" />
-              <span>{formattedViewCount} görüntüleme</span>
+              <span>{formattedDate}</span>
             </div>
-            <span className="text-gray-500">•</span>
-            <span>{formattedDate}</span>
+          </div>
+          
+          <div className="mt-1 sm:mt-2">
+            <a 
+              href={`/kategori/${video.category_slug}`}
+              className="inline-block bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded transition-colors"
+            >
+              {video.category_name}
+            </a>
           </div>
         </div>
-        
-        <div className="flex items-center justify-between">
-          <a 
-            href={`/kategori/${video.category_slug}`}
-            className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs px-3 py-1.5 rounded-full transition-all duration-300 transform hover:scale-105 font-medium"
-          >
-            {video.category_name}
-          </a>
-        </div>
-        
-        {video.description && (
-          <p className="text-gray-400 text-sm mt-3 line-clamp-2 leading-relaxed">
-            {video.description}
-          </p>
-        )}
       </div>
     </div>
   );
