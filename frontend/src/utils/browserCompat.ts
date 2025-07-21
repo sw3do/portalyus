@@ -110,11 +110,12 @@ export const addFullscreenPolyfill = () => {
                         doc.msExitFullscreen;
   }
   
-  if (!doc.fullscreenElement) {
+  if (!doc.fullscreenElement && !Object.getOwnPropertyDescriptor(doc, 'fullscreenElement')) {
     Object.defineProperty(doc, 'fullscreenElement', {
       get: () => doc.webkitFullscreenElement ||
                 doc.mozFullScreenElement ||
-                doc.msFullscreenElement
+                doc.msFullscreenElement,
+      configurable: true
     });
   }
 };

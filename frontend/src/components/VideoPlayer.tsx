@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { 
-  detectBrowser, 
   initializeBrowserCompatibility, 
-  getOptimalVideoSettings,
   createVideoErrorMessage,
   optimizeVideoPerformance,
   getSupportedVideoFormats,
