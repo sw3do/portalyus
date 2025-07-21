@@ -1,4 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { 
+  detectBrowser, 
+  initializeBrowserCompatibility, 
+  getOptimalVideoSettings,
+  createVideoErrorMessage,
+  optimizeVideoPerformance,
+  getSupportedVideoFormats,
+  type BrowserInfo 
+} from '../utils/browserCompat';
 import {
   PlayIcon,
   PauseIcon,
@@ -90,6 +99,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   });
 
   const [isMobile, setIsMobile] = useState(false);
+  const [browserInfo, setBrowserInfo] = useState<BrowserInfo>({
+    isIOS: false,
+    isSafari: false,
+    isChrome: false,
+    isFirefox: false,
+    isEdge: false,
+    isAndroid: false,
+    isMobile: false,
+    supportsHLS: false,
+    supportsPiP: false,
+    supportsFullscreen: false,
+    supportsWebGL: false,
+    supportsServiceWorker: false,
+    version: '',
+    osVersion: ''
+  });
+  const [supportedFormats, setSupportedFormats] = useState<string[]>([]);
 
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -102,6 +128,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
 
   // Throttle function for performance
+
+
   const throttle = useCallback((func: Function, limit: number) => {
     let inThrottle: boolean;
     return function executedFunction(...args: any[]) {
@@ -178,20 +206,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     let errorMessage = 'Video yüklenirken bir hata oluştu';
 
     if (error) {
-      switch (error.code) {
-        case error.MEDIA_ERR_ABORTED:
-          errorMessage = 'Video yükleme iptal edildi';
-          break;
-        case error.MEDIA_ERR_NETWORK:
-          errorMessage = 'Ağ hatası nedeniyle video yüklenemedi';
-          break;
-        case error.MEDIA_ERR_DECODE:
-          errorMessage = 'Video dosyası bozuk veya desteklenmiyor';
-          break;
-        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-          errorMessage = 'Video formatı desteklenmiyor';
-          break;
-      }
+      errorMessage = createVideoErrorMessage(error, browserInfo);
     }
 
     setState(prev => ({
@@ -201,7 +216,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       isLoading: false,
       isWaiting: false
     }));
-  }, []);
+  }, [browserInfo]);
 
   const handleProgress = useCallback(throttle(() => {
     if (!videoRef.current) return;
@@ -283,16 +298,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
+    const element = containerRef.current as any;
+    
     if (!state.isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+      } else if (browserInfo.isIOS && videoRef.current) {
+        (videoRef.current as any).webkitEnterFullscreen?.();
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+      const doc = document as any;
+      if (doc.exitFullscreen) {
+        doc.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+      } else if (doc.mozCancelFullScreen) {
+        doc.mozCancelFullScreen();
+      } else if (doc.msExitFullscreen) {
+        doc.msExitFullscreen();
       }
     }
-  }, [state.isFullscreen]);
+  }, [state.isFullscreen, browserInfo.isIOS]);
 
   const skipTime = useCallback((seconds: number) => {
     if (!videoRef.current) return;
@@ -311,18 +343,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, []);
 
   const togglePictureInPicture = useCallback(async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !browserInfo.supportsPiP) return;
 
     try {
       if (state.isPictureInPicture) {
         await document.exitPictureInPicture();
       } else {
-        await videoRef.current.requestPictureInPicture();
+        const video = videoRef.current as any;
+        if (video.requestPictureInPicture) {
+          await video.requestPictureInPicture();
+        } else if (video.webkitSetPresentationMode && browserInfo.isSafari) {
+          video.webkitSetPresentationMode('picture-in-picture');
+        }
       }
     } catch (error) {
       console.error('Picture-in-Picture hatası:', error);
     }
-  }, [state.isPictureInPicture]);
+  }, [state.isPictureInPicture, browserInfo.supportsPiP, browserInfo.isSafari]);
 
   const handlePictureInPictureChange = useCallback(() => {
     setState(prev => ({ ...prev, isPictureInPicture: !!document.pictureInPictureElement }));
@@ -364,7 +401,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-  }, []);
+
+    if (state.isPlaying && !isMobile) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setState(prev => ({ ...prev, showControls: false }));
+      }, 3000);
+    }
+  }, [state.isPlaying, isMobile]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!videoRef.current) return;
@@ -430,41 +473,84 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, []);
 
   useEffect(() => {
+    const browser = initializeBrowserCompatibility();
+    setBrowserInfo(browser);
+    setSupportedFormats(getSupportedVideoFormats(browser));
+    
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window || browser.isIOS || browser.isMobile);
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
     const handleFullscreenChange = () => {
-      setState(prev => ({ ...prev, isFullscreen: !!document.fullscreenElement }));
+      const doc = document as any;
+      const isFullscreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement || 
+                             doc.mozFullScreenElement || doc.msFullscreenElement);
+      setState(prev => ({ ...prev, isFullscreen }));
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && state.isPlaying && !browser.isIOS) {
+        videoRef.current?.pause();
+      }
+    };
+
+    const handleOrientationChange = () => {
+      if (browser.isIOS) {
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.style.height = 'auto';
+            videoRef.current.style.width = '100%';
+          }
+        }, 100);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('enterpictureinpicture', handlePictureInPictureChange);
     document.addEventListener('leavepictureinpicture', handlePictureInPictureChange);
+    
+    if (browser.isIOS) {
+      window.addEventListener('orientationchange', handleOrientationChange);
+    }
 
     return () => {
       window.removeEventListener('resize', checkMobile);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('enterpictureinpicture', handlePictureInPictureChange);
       document.removeEventListener('leavepictureinpicture', handlePictureInPictureChange);
+      
+      if (browser.isIOS) {
+        window.removeEventListener('orientationchange', handleOrientationChange);
+      }
+      
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [handleMouseMove, handleMouseUp, handleKeyDown, handlePictureInPictureChange]);
+  }, [handleMouseMove, handleMouseUp, handleKeyDown, handlePictureInPictureChange, state.isPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    optimizeVideoPerformance(video, browserInfo);
 
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -491,11 +577,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('error', handleError);
       video.removeEventListener('progress', handleProgress);
     };
-  }, [handleLoadStart, handleTimeUpdate, handleLoadedMetadata, handleLoadedData, handlePlay, handlePause, handleEnded, handleCanPlay, handleWaiting, handleError, handleProgress]);
+  }, [handleLoadStart, handleTimeUpdate, handleLoadedMetadata, handleLoadedData, handlePlay, handlePause, handleEnded, handleCanPlay, handleWaiting, handleError, handleProgress, browserInfo]);
 
   useEffect(() => {
-    setState(prev => ({ ...prev, showControls: true }));
-  }, [state.isPlaying]);
+    if (state.isPlaying) {
+      showControlsTemporarily();
+    } else {
+      setState(prev => ({ ...prev, showControls: true }));
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    }
+  }, [state.isPlaying, showControlsTemporarily]);
 
   const progressPercentage = useMemo(() => 
     state.duration ? (state.currentTime / state.duration) * 100 : 0, 
@@ -512,32 +605,51 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     smallIcon: isMobile ? (state.isFullscreen ? 'w-5 h-5' : 'w-4 h-4') : (state.isFullscreen ? 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7' : 'w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-6 md:h-6')
   }), [isMobile, state.isFullscreen]);
 
+  const handleMouseLeave = useCallback(() => {
+    if (!isMobile) {
+      setShowVolumeSlider(false);
+      setShowSettings(false);
+      if (state.isPlaying) {
+        setState(prev => ({ ...prev, showControls: false }));
+      }
+    }
+  }, [isMobile, state.isPlaying]);
+
   return (
     <div
       ref={containerRef}
       className={`relative bg-gradient-to-br from-gray-950 via-black to-gray-900 group ${className} focus:outline-none rounded-xl overflow-hidden shadow-2xl border border-white/5 ${isMobile ? 'touch-manipulation' : ''}`}
-      onMouseLeave={() => {
+      onMouseMove={(e) => {
+        handleMouseMove(e);
         if (!isMobile) {
-          setShowVolumeSlider(false);
-          setShowSettings(false);
+          showControlsTemporarily();
         }
       }}
+      onMouseLeave={handleMouseLeave}
       tabIndex={0}
     >
       <video
         ref={videoRef}
         src={src}
         poster={poster}
-        autoPlay={autoPlay}
-        muted={state.isMuted}
+        autoPlay={autoPlay && !browserInfo.isIOS}
+        muted={state.isMuted || browserInfo.isIOS}
         loop={loop}
         className="w-full h-full object-contain rounded-xl"
         onClick={togglePlay}
         onDoubleClick={!isMobile ? handleDoubleClick : undefined}
         onTouchStart={isMobile ? handleTouchStart : undefined}
-        preload={isMobile ? "metadata" : "auto"}
+        preload={browserInfo.isIOS ? "none" : isMobile ? "metadata" : "auto"}
         playsInline
         webkit-playsinline="true"
+        x-webkit-airplay="allow"
+        controlsList={browserInfo.isChrome ? "nodownload nofullscreen noremoteplayback" : undefined}
+        disablePictureInPicture={!browserInfo.supportsPiP}
+        crossOrigin="anonymous"
+        style={{
+          WebkitTransform: browserInfo.isIOS ? 'translateZ(0)' : undefined,
+          transform: browserInfo.isIOS ? 'translateZ(0)' : undefined
+        }}
       />
 
       {state.hasError && (
@@ -735,7 +847,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             <div className={`flex items-center transition-all duration-300 ${state.isFullscreen ? 'space-x-1 sm:space-x-2 md:space-x-3 lg:space-x-4' : 'space-x-0.5 sm:space-x-1 md:space-x-2'}`}>
-              {document.pictureInPictureEnabled && !isMobile && (
+              {browserInfo.supportsPiP && !isMobile && (
                 <button
                   onClick={togglePictureInPicture}
                   className={`group hover:bg-gradient-to-br hover:from-white/20 hover:to-white/10 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/10 hover:border-white/30 shadow-lg hover:shadow-xl ${controlSizes.smallButton} ${state.isFullscreen ? 'block' : 'hidden sm:block'}`}
@@ -780,50 +892,100 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       ))}
 
                       <div className={`border-t border-white/20 transition-all duration-300 ${state.isFullscreen ? 'mt-6 pt-5' : 'mt-5 pt-4'}`}>
-                        <div className={`text-transparent bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text font-bold text-center mb-3 transition-all duration-300 ${state.isFullscreen ? 'text-lg md:text-xl mb-4' : 'text-base'} ${isMobile ? 'text-base mb-3' : ''}`}>Klavye Kısayolları</div>
+                        <div className={`text-transparent bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text font-bold text-center mb-3 transition-all duration-300 ${state.isFullscreen ? 'text-lg md:text-xl mb-4' : 'text-base'} ${isMobile ? 'text-base mb-3' : ''}`}>Tarayıcı Bilgisi</div>
                         <div className={`text-gray-300 space-y-2 transition-all duration-300 ${state.isFullscreen ? 'text-sm md:text-base space-y-2.5' : 'text-xs'} ${isMobile ? 'text-sm space-y-2.5' : ''}`}>
                           <div className="flex justify-between items-center">
-                            <span>Space:</span>
-                            <span className="text-white/80 font-medium">Oynat/Duraklat</span>
+                            <span>Tarayıcı:</span>
+                            <span className="text-white/80 font-medium">
+                              {browserInfo.isIOS ? 'iOS Safari' : 
+                               browserInfo.isSafari ? 'Safari' :
+                               browserInfo.isChrome ? 'Chrome' :
+                               browserInfo.isFirefox ? 'Firefox' :
+                               browserInfo.isEdge ? 'Edge' : 'Bilinmeyen'}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span>←/→:</span>
-                            <span className="text-white/80 font-medium">10s Geri/İleri</span>
+                            <span>Sürüm:</span>
+                            <span className="text-white/80 font-medium">{browserInfo.version || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span>↑/↓:</span>
-                            <span className="text-white/80 font-medium">Ses Seviyesi</span>
+                            <span>HLS Desteği:</span>
+                            <span className={`font-medium ${browserInfo.supportsHLS ? 'text-green-400' : 'text-red-400'}`}>
+                              {browserInfo.supportsHLS ? 'Evet' : 'Hayır'}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span>M:</span>
-                            <span className="text-white/80 font-medium">Sessiz</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>F:</span>
-                            <span className="text-white/80 font-medium">Tam Ekran</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>P:</span>
-                            <span className="text-white/80 font-medium">Picture-in-Picture</span>
-                          </div>
+                             <span>PiP Desteği:</span>
+                             <span className={`font-medium ${browserInfo.supportsPiP ? 'text-green-400' : 'text-red-400'}`}>
+                               {browserInfo.supportsPiP ? 'Evet' : 'Hayır'}
+                             </span>
+                           </div>
+                           <div className="flex justify-between items-center">
+                             <span>Desteklenen Formatlar:</span>
+                             <span className="text-white/80 font-medium text-xs">
+                               {supportedFormats.length > 0 ? supportedFormats.join(', ') : 'Yok'}
+                             </span>
+                           </div>
+                           {browserInfo.isAndroid && (
+                             <div className="flex justify-between items-center">
+                               <span>Android Sürüm:</span>
+                               <span className="text-white/80 font-medium">{browserInfo.osVersion || 'N/A'}</span>
+                             </div>
+                           )}
                         </div>
+                        
+                        {!browserInfo.isIOS && (
+                          <div className={`border-t border-white/20 mt-4 pt-4 transition-all duration-300`}>
+                            <div className={`text-transparent bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text font-bold text-center mb-3 transition-all duration-300 ${state.isFullscreen ? 'text-lg md:text-xl mb-4' : 'text-base'} ${isMobile ? 'text-base mb-3' : ''}`}>Klavye Kısayolları</div>
+                            <div className={`text-gray-300 space-y-2 transition-all duration-300 ${state.isFullscreen ? 'text-sm md:text-base space-y-2.5' : 'text-xs'} ${isMobile ? 'text-sm space-y-2.5' : ''}`}>
+                              <div className="flex justify-between items-center">
+                                <span>Space:</span>
+                                <span className="text-white/80 font-medium">Oynat/Duraklat</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>←/→:</span>
+                                <span className="text-white/80 font-medium">10s Geri/İleri</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>↑/↓:</span>
+                                <span className="text-white/80 font-medium">Ses Seviyesi</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>M:</span>
+                                <span className="text-white/80 font-medium">Sessiz</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>F:</span>
+                                <span className="text-white/80 font-medium">Tam Ekran</span>
+                              </div>
+                              {browserInfo.supportsPiP && (
+                                <div className="flex justify-between items-center">
+                                  <span>P:</span>
+                                  <span className="text-white/80 font-medium">Picture-in-Picture</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <button
-                onClick={toggleFullscreen}
-                className={`group hover:bg-gradient-to-br hover:from-white/20 hover:to-white/10 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/10 hover:border-white/30 shadow-lg hover:shadow-xl ${controlSizes.smallButton}`}
-                title={state.isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
-              >
-                {state.isFullscreen ? (
-                  <ArrowsPointingInIcon className={`text-white/90 group-hover:text-red-400 transition-colors duration-300 ${controlSizes.smallIcon}`} />
-                ) : (
-                  <ArrowsPointingOutIcon className={`text-white/90 group-hover:text-red-400 transition-colors duration-300 ${controlSizes.smallIcon}`} />
-                )}
-              </button>
+              {browserInfo.supportsFullscreen && (
+                <button
+                  onClick={toggleFullscreen}
+                  className={`group hover:bg-gradient-to-br hover:from-white/20 hover:to-white/10 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/10 hover:border-white/30 shadow-lg hover:shadow-xl ${controlSizes.smallButton}`}
+                  title={state.isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+                >
+                  {state.isFullscreen ? (
+                    <ArrowsPointingInIcon className={`text-white/90 group-hover:text-red-400 transition-colors duration-300 ${controlSizes.smallIcon}`} />
+                  ) : (
+                    <ArrowsPointingOutIcon className={`text-white/90 group-hover:text-red-400 transition-colors duration-300 ${controlSizes.smallIcon}`} />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
